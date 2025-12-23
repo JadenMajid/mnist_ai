@@ -7,7 +7,24 @@
                 "${workspaceFolder}/src"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/gcc"
+            "compilerPath": "/usr/bin/clang"
+        },
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Users/jaden/mnist_ai/**"
+            ],
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "macos-clang-arm64",
+            "compilerPath": "/usr/bin/clang",
+            "compilerPathInCppPropertiesJson": "/usr/bin/gcc",
+            "mergeConfigurations": false,
+            "recursiveIncludes": {},
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true
+            }
         }
     ],
     "version": 4

@@ -11,48 +11,58 @@
  */
 float sigmoid(float x) { return 1 / (1 + pow(e, -x)); }
 
-float sigmoid_d(float x) {
+float sigmoid_d(float x)
+{
   float s = sigmoid(x);
   return s * (1 - s);
 }
-typedef struct Layer {
+typedef struct Layer
+{
   Mat *w;
   Mat *b; // row vec
   float (*h)(float);
   float (*dh)(float);
 } Layer;
 
-typedef struct Model {
+typedef struct Model
+{
   int n_layers;
   Layer *layers;
+  int max_epochs;
 } Model;
 
-typedef struct ForwardPass {
+typedef struct ForwardPass
+{
   Mat *a;
   Mat *z;
 } ForwardPass;
 
-typedef struct BackwardsPass {
+typedef struct BackwardsPass
+{
   Mat *d;
   Layer *next_layer;
 } BackwardsPass;
 
-Layer *new_layer(int n, int m) {
+Layer *new_layer(int n, int m)
+{
   Layer *layer = (Layer *)malloc(sizeof(Layer));
   layer->b = new_mat(1, m);
   layer->w = new_mat(n, m);
   return layer;
 }
 
-Model *new_model(Mat *layers, float (*activation_function)(float)) {
-  if (layers->m != 1) {
+Model *new_model(Mat *layers, float (*activation_function)(float))
+{
+  if (layers->m != 1)
+  {
     printf("passed layers matrix must be a column matrix!");
     print_mat(layers);
   }
   Model *model = (Model *)malloc(sizeof(Model));
   model->n_layers = layers->n;
   model->layers = (Layer *)calloc(sizeof(Layer *), model->n_layers);
-  for (int i = 1; i < layers->n; i++) {
+  for (int i = 1; i < layers->n; i++)
+  {
     Layer *layer = model->layers + i;
     int n = layers[i - 1].n;
     int m = layers[i].m;
@@ -62,22 +72,27 @@ Model *new_model(Mat *layers, float (*activation_function)(float)) {
   return model;
 }
 
-Layer *randomize_layer(Layer *layer) {
+Layer *randomize_layer(Layer *layer)
+{
   layer->b = randomize(layer->b);
   layer->w = randomize(layer->w);
   return layer;
 }
 
-Model *randomize_model(Model *model) {
-  for (int i = 0; i < model->n_layers; i++) {
+Model *randomize_model(Model *model)
+{
+  for (int i = 0; i < model->n_layers; i++)
+  {
     randomize_layer(model->layers + i);
   }
 }
 
 int input_dim_model(Model *model) { return model->layers[0].w->n; }
 
-Mat *apply(Layer *layer, Mat *in, Mat *out) {
-  if (!out) {
+Mat *apply(Layer *layer, Mat *in, Mat *out)
+{
+  if (!out)
+  {
     out = new_mat(in->n, layer->w->m);
   }
   mat_dot_mat(in, layer->w, out);
@@ -85,29 +100,68 @@ Mat *apply(Layer *layer, Mat *in, Mat *out) {
   return out;
 }
 
-Mat *predict(Model *model, Mat *X, Mat *y_hat) {
+Mat *predict(Model *model, Mat *X, Mat *y_hat)
+{
   Mat *z = NULL;
   Mat *h_z = X;
-  for (int i = 0; i < model->n_layers; i++) {
+  for (int i = 0; i < model->n_layers; i++)
+  {
     z = apply(&model->layers[i], h_z, NULL);
     h_z = mat_apply_fn(z, sigmoid, NULL);
   }
   return h_z;
 }
 
-ForwardPass *forward_pass(Layer *layer, Mat *a, ForwardPass *out) {
-  out->a = new_mat(a->n, layer->w->m);
-  out->z = new_mat(a->n, layer->w->m);
+ForwardPass *forward_pass(Layer *layer, Mat *a, ForwardPass *out)
+{
+  if (!out->a)
+    out->a = new_mat(a->n, layer->w->m);
+  if (!out->z)
+    out->z = new_mat(a->n, layer->w->m);
 
   mat_dot_mat(layer->w, a, out->a);
   mat_apply_fn(out->a, layer->h, out->z);
   return out;
 }
 
-BackwardsPass *backwards_pass_hidden(Layer *layer, ForwardPass *fp,
-                                     BackwardsPass *bp, BackwardsPass *out) {
-  out->d = new_mat(layer->w->m, 1);
-  mat_dot_mat(bp->next_layer->w.T, bp->d, out->d);
+BackwardsPass *backwards_pass_hidden(Layer *layer, ForwardPass *fp, BackwardsPass *bp, BackwardsPass *out)
+{
+  if (!out->d)
+    out->d = new_mat(layer->w->m, 1);
+  mat_dot_mat(bp->next_layer->w->T, bp->d, out->d);
+  mat_hamard_mat(out->d, fp->z, out->d);
+  return out;
+}
+
+BackwardsPass *last_layer(Layer *layer, Mat *y, ForwardPass *fp, ForwardPass *fp_out, BackwardsPass *bp_out)
+{
+  forward_pass(layer, fp->a, fp_out);
+  if (!bp_out->d)
+    bp_out->d = new_mat(layer->w->m, 1);
+  mat_sub_mat(fp->a, y, bp_out->d);
+  return bp_out;
+}
+
+Model *train(Model *model, Mat *X, Mat *y)
+{
+  int n_L = model->n_layers;
+  ForwardPass *fps = (ForwardPass *)calloc(n_L, sizeof(ForwardPass));
+  BackwardsPass *bps = (BackwardsPass *)calloc(n_L, sizeof(BackwardsPass));
+  for (int epoch = 0; epoch < model->max_epochs; epoch++)
+  {
+    for (int i = 0; i < model->n_layers - 1; i++)
+    {
+      forward_pass(&model->layers[i], X, &fps[i]);
+    }
+
+    last_layer(&model->layers[n_L], y, &fps[n_L - 1], &fps[n_L], &bps[n_L]);
+    printf("Epoch %d:\nf:%d", epoch, norm_L2_squared(bps[n_L].d));
+
+    for (int i = 0; i < model->n_layers - 1; i++)
+    {
+      backwards_pass_hidden(&model->layers[i], &fps[i], &bps[i + 1], &bps[i]);
+    }
+  }
 }
 
 #endif
