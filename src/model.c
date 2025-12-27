@@ -56,7 +56,7 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
   int d = X->cols;        // 784 features
   int c = Y_labels->cols; // 10 classes
 
-  // --- 1. HOISTED ALLOCATIONS ---
+
   Mat* a = malloc(model->n_layers * sizeof(Mat));
   Mat* a_T = malloc(model->n_layers * sizeof(Mat));
   Mat* z = malloc(model->n_layers * sizeof(Mat));
@@ -101,7 +101,7 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
   Mat* Y_batch = mat_new(batch_s, c);
   Mat* softmax = mat_new(batch_s, c);
 
-  // --- 2. TRAINING LOOPS ---
+
   int correct_this_batch = 0;
   for (int epoch = 0; epoch < model->max_epochs; epoch++)
   {
@@ -112,6 +112,9 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
       int printout = (X->rows / batch_s / 5 && b % PRINT_FREQUENCY == 0);
       // printf("%d\n",b);
       int current_batch_size = (b + batch_s < n) ? batch_s : n - b;
+      if (current_batch_size < batch_s){
+        break;
+      }
 
       // If current_batch_size becomes negative or zero, memcpy may fail or crash.
       if (current_batch_size <= 0)
@@ -127,12 +130,12 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
       Y_batch->rows = current_batch_size;
       softmax->rows = current_batch_size;
 
-      // 1. Load Batch Data (Contiguous Row Copy)
+      // 1) Load Batch Data (Contiguous Row Copy)
       // Because examples are rows, we can copy the whole block at once
       memcpy(a[0].data, &X->data[b * d], current_batch_size * d * sizeof(float));
       memcpy(Y_batch->data, &Y_labels->data[b * c], current_batch_size * c * sizeof(float));
 
-      // 2. Forward Pass: Z = A_prev * W + B
+      // 2) Forward Pass: Z = A_prev * W + B
       for (int i = 1; i < model->n_layers; i++)
       {
         mat_dot(&a[i - 1], model->layers[i - 1].w, &z[i]);
@@ -140,30 +143,8 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
         mat_apply(&z[i], relu, &a[i]);
       }
 
-      // 3. Stable Softmax (Row-wise for each sample in batch)
-      for (int i = 0; i < a[i - 1].rows; i++)
-      {
-        float max_val = -INFINITY;
-        int row_offset = i * a[i - 1].cols;
-
-        for (int j = 0; j < a[i - 1].cols; j++)
-        {
-          if (a[model->n_layers - 1].data[row_offset + j] > max_val)
-            max_val = a[model->n_layers - 1].data[row_offset + j];
-        }
-
-        float sum_exp = 0.0f;
-        for (int j = 0; j < a[i - 1].cols; j++)
-        {
-          int idx = row_offset + j;
-          softmax->data[idx] = expf(a[model->n_layers - 1].data[idx] - max_val);
-          sum_exp += softmax->data[idx];
-        }
-        for (int j = 0; j < a[i - 1].cols; j++)
-        {
-          softmax->data[row_offset + j] /= sum_exp;
-        }
-      }
+      // 3) Stable Softmax (Row-wise for each sample in batch)
+      mat_softmax(&a[model->n_layers -1], softmax);
 
       for (int i = 0; i < current_batch_size; i++)
       {
@@ -194,7 +175,7 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
       if (printout)
       {
         double train_acc = (double)correct_this_batch / (current_batch_size);
-        printf("Epoch %2.d | Batch %5.d/%5.d | Batch Accuracy: %.2f%%\n", epoch + 1, b + batch_s, n, train_acc * 100.0f);
+        printf("Epoch %2.d | Batch %5.d/%5.d | %.2f%% : Batch Accuracy\n", epoch + 1, b + batch_s, n, train_acc * 100.0f);
       }
       // 4. Backward Pass
       // Delta for output layer (Softmax - Target)
@@ -241,12 +222,12 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
       }
     }
     double train_acc = calculate_accuracy(model, X, Y_labels);
-    printf("========================================================\n");
-    printf("Epoch %2.d | Epoch Total       | Train Accuracy: %.2f%%\n", epoch + 1, train_acc * 100.0f);
+    printf(  "---------+-------------------+--------------------------\n");
+    printf("Epoch %2.d | Epoch Total       | Train Accuracy : %.2f%%\n", epoch + 1, train_acc * 100.0f);
     printf("========================================================\n");
   }
 
-  // --- 3. CLEANUP ---
+  // cleanup
   for (int i = 0; i < model->n_layers; i++)
   {
     free(a[i].data);
@@ -273,7 +254,7 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
 
 double calculate_accuracy(Model* model, Mat* X, Mat* Y_one_hot)
 {
-  // model_predict should now return a (Samples x Classes) matrix
+  // model_predict should return a (Samples x Classes) matrix
   Mat* predictions = model_predict(model, X);
   int correct = 0;
   int n_samples = X->rows;         // Rows are examples
@@ -328,23 +309,20 @@ Mat* model_predict(Model* model, Mat* X)
 
     // Output must be (Samples x Output_Neurons)
     Mat* next_a = mat_new(current_a->rows, curr_w->cols);
+    // printf("\ncurr_w:%d,%d", curr_w->rows, curr_w->cols);
+    // printf("\ncurr_b:%d,%d\n", curr_b->rows, curr_b->cols);
 
     mat_dot(current_a, curr_w, next_a); // Row-Major: (N x In) * (In x Out)
     mat_add_bias(next_a, curr_b);
     mat_apply(next_a, relu, next_a);
 
-    if (current_a->cols != curr_w->rows) {
-      printf("Dimension Mismatch at Layer %d: Input Cols (%d) != Weight Rows (%d)\n",
-        i, current_a->cols, curr_w->rows);
-    }
-
-    // Free the intermediate activation matrix to prevent leaks
     if (current_a != X)
     {
       mat_free(current_a);
     }
     current_a = next_a;
   }
+  mat_softmax(current_a, current_a);
   return current_a;
 }
 
@@ -355,7 +333,7 @@ void model_free(Model* model)
     mat_free(model->layers[i].w);
     mat_free(model->layers[i].b);
   }
-  free(model->layers); // Don't forget to free the layers array itself!
+  free(model->layers);
   free(model);
 }
 

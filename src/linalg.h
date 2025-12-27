@@ -36,4 +36,6 @@ void mat_transpose(Mat *m, Mat *out);
 void mat_apply(Mat *m, float (*fn)(float), Mat *out);
 void mat_add_bias(Mat *z, Mat *b);
 
+void mat_softmax(Mat *a, Mat *out);
+
 #endif

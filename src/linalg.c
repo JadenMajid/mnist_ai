@@ -36,7 +36,7 @@ void mat_print(Mat *m) {
 // Optimized Dot Product (Row-Major Order)
 void mat_dot(Mat *a, Mat *b, Mat *out) {
     if (a->cols != b->rows) {
-        fprintf(stderr, "Error: Inner dimensions must match for dot product.\n");
+        fprintf(stderr, "Error: Inner dimensions must match for dot product. (%dx%d)*(%dx%d)\n", a->rows, a->cols, b->rows, b->cols);
         return;
     }
     
@@ -148,6 +148,28 @@ void mat_add_bias(Mat *z, Mat *b) {
         for (int j = 0; j < z->cols; j++) {
             // Add the j-th bias component to the j-th feature of every row
             z->data[i * z->cols + j] += b->data[j];
+        }
+    }
+}
+
+void mat_softmax(Mat *m, Mat *out)
+{
+    for (int i = 0; i < m->rows; i++){
+        // find max 
+        float rowmax = __FLT_MIN__;
+        for (int j = 0; j < m->cols;j++){
+            if (m->data[i*m->cols+j] > rowmax) 
+                rowmax = m->data[i*m->cols+j];
+        }
+        // assign out values
+        float row_exp_sum = 0.0;
+        for (int j = 0; j < m->cols;j++){
+            out->data[i*m->cols+j] = expf(m->data[i*m->cols+j] - rowmax);
+            row_exp_sum += out->data[i*m->cols+j];
+        }
+        // div by sum of exps
+        for (int j = 0; j < m->cols;j++){
+            out->data[i*m->cols+j] /= row_exp_sum;
         }
     }
 }

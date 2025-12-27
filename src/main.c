@@ -99,16 +99,17 @@ int main(int argc, char **argv) {
 
     if (!model) { fprintf(stderr, "Error: Model initialization failed.\n"); return 1; }
 
-    // 2. Load MNIST Data
+    // Load MNIST Data
     printf("Loading MNIST dataset...\n");
     Mat *X_train = read_mnist_images("archive/train-images.idx3-ubyte");
     Mat *Y_train = read_mnist_labels("archive/train-labels.idx1-ubyte");
-    Mat *X_test = read_mnist_images("archive/test-images.idx1-ubyte");
-    Mat *Y_test_raw = read_mnist_labels("archive/test-labels.idx1-ubyte");
-
+    Mat *X_test = read_mnist_images("archive/t10k-images.idx3-ubyte");
+    X_test->rows = 10000;
+    Mat *Y_test_raw = read_mnist_labels("archive/t10k-labels.idx1-ubyte");
+    Y_test_raw->rows = 10000;
     if (!X_train || !Y_train) return 1;
 
-    // 3. Training
+    // Training
     printf("Configuration: LR=%.4f, Epochs=%d, Batch=%d\n", learning_rate, epochs, batch_size);
     clock_t start = clock();
     model_train(model, X_train, Y_train, batch_size);
@@ -116,11 +117,11 @@ int main(int argc, char **argv) {
 
     printf("\nTraining complete in %.2f seconds.\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-    // 4. Evaluation
+    // Evaluation
     float acc = calculate_accuracy(model, X_test, Y_test_raw);
     printf("Final Test Accuracy: %.2f%%\n", acc * 100.0f);
 
-    // 5. Saving
+    // Saving
     if (should_save) {
         char timestamp[64];
         snprintf(timestamp, sizeof(timestamp), "%ld", (long)time(NULL));
@@ -128,7 +129,7 @@ int main(int argc, char **argv) {
         printf("Model saved to data/%s\n", timestamp);
     }
 
-    // 6. Cleanup
+    // Cleanup
     if (topology) mat_free(topology);
     mat_free(X_train); mat_free(Y_train);
     mat_free(X_test);  mat_free(Y_test_raw);

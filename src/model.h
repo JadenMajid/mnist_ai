@@ -35,7 +35,6 @@ Model *model_new(Mat *layers_dim, int max_epochs, float learning_rate);
  */
 void model_train(Model *model, Mat *X, Mat *Y, int batch_s);
 
-void mat_softmax(Mat *a, Model *model, Mat *softmax);
 
 /**
  * Predicts the output for a given input matrix.
