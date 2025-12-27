@@ -1,20 +1,16 @@
-CC=gcc
-ODIR=out
+CC = gcc
+CFLAGS = -O3 -mcpu=apple-m1 -ffast-math -flto -Isrc #-g
+LDFLAGS = -lm -framework Accelerate
+SRCS = $(wildcard src/*.c)
+OUT = out/main
 
-main:
-	$(CC) ./src/main.c -o ./$(ODIR)/main.o
+all: $(OUT)
+
+$(OUT): $(SRCS)
+	@mkdir -p out
+	$(CC) $(CFLAGS) $(SRCS) -o $(OUT) $(LDFLAGS)
+
+debug: 
 
 clean:
-	rm $(ODIR)/*.o
-
-build_test:
-	$(CC) ./test/test_linalg.c -o ./$(ODIR)/test_linalg.o
-
-test: test_linalg
-
-test_leaks: build_test
-	valgrind --leak-check=full --show-leak-kinds=all ./$(ODIR)/test_linalg.o
-
-test_linalg: build_test
-	./$(ODIR)/test_linalg.o
-
+	rm -rf out/
