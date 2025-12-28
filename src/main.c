@@ -101,13 +101,22 @@ int main(int argc, char **argv) {
 
     // Load MNIST Data
     printf("Loading MNIST dataset...\n");
-    Mat *X_train = read_mnist_images("archive/train-images.idx3-ubyte");
-    Mat *Y_train = read_mnist_labels("archive/train-labels.idx1-ubyte");
-    Mat *X_test = read_mnist_images("archive/t10k-images.idx3-ubyte");
-    X_test->rows = 10000;
-    Mat *Y_test_raw = read_mnist_labels("archive/t10k-labels.idx1-ubyte");
-    Y_test_raw->rows = 10000;
-    if (!X_train || !Y_train) return 1;
+
+    Mat *X_train = read_mnist_images("archive/ua_tr/train-images.idx3-ubyte");
+    Mat *Y_train = read_mnist_labels("archive/ua_tr/train-labels.idx1-ubyte");
+    Mat *X_test = read_mnist_images("archive/ua_tr/t10k-images.idx3-ubyte");
+    Mat *Y_test_raw = read_mnist_labels("archive/ua_tr/t10k-labels.idx1-ubyte");
+
+    // Mat *X_train = read_mnist_images("archive/augmented_mnist/train-images.idx3-ubyte");
+    // Mat *Y_train = read_mnist_labels("archive/augmented_mnist/train-labels.idx1-ubyte");
+    // Mat *X_test = read_mnist_images("archive/augmented_mnist/t10k-images.idx3-ubyte");
+    // Mat *Y_test_raw = read_mnist_labels("archive/augmented_mnist/t10k-labels.idx1-ubyte");
+    
+    if (!X_train || !Y_train){
+    
+        printf("x_train or y_train not found!");
+        return 1;
+    }
 
     // Training
     printf("Configuration: LR=%.4f, Epochs=%d, Batch=%d\n", learning_rate, epochs, batch_size);

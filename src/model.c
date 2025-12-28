@@ -116,7 +116,6 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
         break;
       }
 
-      // If current_batch_size becomes negative or zero, memcpy may fail or crash.
       if (current_batch_size <= 0)
         break;
 
@@ -130,8 +129,7 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
       Y_batch->rows = current_batch_size;
       softmax->rows = current_batch_size;
 
-      // 1) Load Batch Data (Contiguous Row Copy)
-      // Because examples are rows, we can copy the whole block at once
+      // 1) Load Batch Data 
       memcpy(a[0].data, &X->data[b * d], current_batch_size * d * sizeof(float));
       memcpy(Y_batch->data, &Y_labels->data[b * c], current_batch_size * c * sizeof(float));
 
@@ -191,7 +189,6 @@ void model_train(Model* model, Mat* X, Mat* Y_labels, int batch_s)
         // A_prev is a[i-1], Delta_curr is delta[i]
         mat_transpose(&a[i - 1], &a_T[i - 1]); // Note: Use index i-1 for transpose workspace
 
-        // Wd should match dimensions of layer->w (n_in x n_out)
         Mat* Wd = &w_d[i - 1];
         mat_dot(&a_T[i - 1], &delta[i], Wd);
 
@@ -309,8 +306,6 @@ Mat* model_predict(Model* model, Mat* X)
 
     // Output must be (Samples x Output_Neurons)
     Mat* next_a = mat_new(current_a->rows, curr_w->cols);
-    // printf("\ncurr_w:%d,%d", curr_w->rows, curr_w->cols);
-    // printf("\ncurr_b:%d,%d\n", curr_b->rows, curr_b->cols);
 
     mat_dot(current_a, curr_w, next_a); // Row-Major: (N x In) * (In x Out)
     mat_add_bias(next_a, curr_b);
