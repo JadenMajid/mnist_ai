@@ -1,0 +1,16 @@
+[4 x 1]
+784.0000 
+128.0000 
+ 64.0000 
+ 10.0000 
+Loading MNIST dataset...
+Configuration: LR=0.1000, Epochs=1, Batch=256
+Epoch  1 | Batch   256/60000 | 12.50% : Batch Accuracy
+Epoch  1 | Batch 32256/60000 | 83.20% : Batch Accuracy
+---------+-------------------+--------------------------
+Epoch  1 | Epoch Total       | Train Accuracy : 88.62%
+========================================================
+
+Training complete in 1.30 seconds.
+Final Test Accuracy: 51.22%
+Model saved to data/1773990297

@@ -72,7 +72,7 @@ int save_model(char *dirname, Model *model) {
     fwrite(&model->lr, sizeof(float), 1, fp);
     fclose(fp);
 
-    for (int i = 0; i < model->n_layers; i++) {
+    for (int i = 0; i < model->n_layers - 1; i++) {
         save_layer(path, i, &model->layers[i]);
     }
     return 0;
@@ -99,9 +99,9 @@ Model *load_model(char *dirname) {
     model->n_layers = n_layers;
     model->max_epochs = epochs;
     model->lr = lr;
-    model->layers = malloc(sizeof(Layer) * n_layers);
+    model->layers = malloc(sizeof(Layer) * (n_layers - 1));
 
-    for (int i = 0; i < n_layers; i++) {
+    for (int i = 0; i < n_layers - 1; i++) {
         char w_name[64], b_name[64];
         snprintf(w_name, sizeof(w_name), "layer_%d_W.bin", i);
         snprintf(b_name, sizeof(b_name), "layer_%d_B.bin", i);
